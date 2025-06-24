@@ -9,7 +9,7 @@ def set_env_var(key, value):
     if system == "Windows":
         # Set for current session
         os.system(f'setx {key} "{value}"')
-        print(f"✅ Set {key} permanently in Windows environment.")
+        print(f"Set {key} permanently in Windows environment.")
     else:
         shell = os.environ.get("SHELL", "")
         home = Path.home()
@@ -24,15 +24,15 @@ def set_env_var(key, value):
 
         # Avoid duplicate exports
         if rc_file.exists() and export_line.strip() in rc_file.read_text():
-            print(f"ℹ️ {key} already set in {rc_file}")
+            print(f"{key} already set in {rc_file}")
         else:
             with open(rc_file, "a") as f:
                 f.write(f"\n# Added by set_vcpkg_root.py\n{export_line}")
-            print(f"✅ Appended {key} to {rc_file}")
+            print(f"Appended {key} to {rc_file}")
 
         # Set for current session
         os.environ[key] = value
-        print(f"✅ Set {key} for current session.")
+        print(f"Set {key} for current session.")
 
 def main():
     default_path = str(Path.home() / "vcpkg")
@@ -40,7 +40,7 @@ def main():
 
     vcpkg_cmake = Path(vcpkg_path) / "scripts" / "buildsystems" / "vcpkg.cmake"
     if not vcpkg_cmake.exists():
-        print("❌ That doesn't look like a valid vcpkg directory.")
+        print("That doesn't look like a valid vcpkg directory.")
         sys.exit(1)
 
     set_env_var("VCPKG_ROOT", str(Path(vcpkg_path).resolve()))
