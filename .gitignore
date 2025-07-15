@@ -1,0 +1,140 @@
+# Build directories
+build/
+bin/
+out/
+obj/
+*.sln
+*.vcxproj*
+*.vcxproj.filters
+*.cmake
+CMakeSettings.json
+
+# Binaries and executables
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+*.pdb
+*.ilk
+*.exp
+*.idb
+*.ipdb
+*.iobj
+*.dylib
+*.bundle
+
+# Generated files
+*.log
+*.tlog
+*.lastbuildstate
+*.cache
+*.manifest
+*.user
+*.suo
+*.opensdf
+*.sdf
+*.opendb
+*.VC.db
+*.suo
+*.userosscache
+
+# .NET artifacts
+managed/bin/
+managed/obj/
+*.csproj.user
+*.nuget.targets
+*.nuget.props
+packages/
+artifacts/
+
+# vcpkg artifacts
+vcpkg/downloads/
+vcpkg/packages/
+vcpkg/buildtrees/
+vcpkg/installed/
+vcpkg/packages/
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor temp files
+*~
+*.swp
+*.swo
+*.bak
+
+# Dependency files
+dependencies/
+external/
+
+# Test artifacts
+TestResults/
+*.trx
+*.coverage
+coverage.json
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+
+# Autotools files
+autom4te.cache/
+aclocal.m4
+configure
+config.*
+depcomp
+install-sh
+missing
+libtool
+ltmain.sh
+stamp-h1
+
+# Package files
+*.deb
+*.rpm
+*.zip
+*.tar.gz
+*.7z

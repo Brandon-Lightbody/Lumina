@@ -1,0 +1,8 @@
+{
+  "name": "lumina-engine",
+  "version-string": "0.1.0",
+  "dependencies": [
+    "catch2"
+  ],
+  "builtin-baseline": "3426db05b996481ca31e95fff3734cf23e0f51bc"
+}
