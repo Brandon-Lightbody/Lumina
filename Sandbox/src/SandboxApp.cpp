@@ -1,4 +1,3 @@
-#include "Core/EntryPoint.h"
 #include "Runtime/Application.h"
 #include "ScriptAPI/ScriptEngine.h"
 
@@ -8,11 +7,22 @@ class SandboxApp : public Lumina::Application {
 public:
     void Initialize() override {
         std::cout << "[Sandbox] Initializing...\n";
-        Lumina::ScriptEngine::Initialize();
+
+        // Register native method callbacks
+        Lumina::ScriptEngine::RegisterNativeMethod("LogMessage",
+            [](const char* message) {
+                std::cout << "[Sandbox] " << message << "\n";
+            }
+        );
+
+        // Initialize scripting
+        if (Lumina::ScriptEngine::Initialize()) {
+            Lumina::ScriptEngine::ExecuteManagedFunction("InitializeManaged");
+        }
     }
 
     void Update() override {
-        // Game logic update
+        Lumina::ScriptEngine::ExecuteManagedFunction("UpdateManaged");
     }
 
     void Render() override {
@@ -29,9 +39,10 @@ Lumina::Application* CreateApplication() {
     return new SandboxApp();
 }
 
-int main(int argc, char** argv) {
-    Lumina::Application* app = CreateApplication();
-    app->Run();
+int main() {
+    auto app = CreateApplication();
+    app->Initialize();
     delete app;
+    std::cin.get();
     return 0;
 }

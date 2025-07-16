@@ -2,6 +2,7 @@
 #include <iostream>
 
 namespace Lumina {
+    // Initialize static member
     Engine* Engine::s_Instance = nullptr;
 
     Engine::Engine() {
@@ -25,11 +26,13 @@ namespace Lumina {
         std::cout << "Engine shutdown\n";
     }
 
-    void Engine::Run() {
-        std::cout << "Engine running...\n";
-    }
-
+    // Implement Get() method
     Engine& Engine::Get() {
+        if (!s_Instance) {
+            // Create a static instance if none exists
+            static Engine defaultInstance;
+            s_Instance = &defaultInstance;
+        }
         return *s_Instance;
     }
 } // namespace Lumina
