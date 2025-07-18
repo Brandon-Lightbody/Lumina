@@ -1,11 +1,11 @@
 #pragma once
 
 #ifdef _WIN32
-	#ifdef SCRIPTAPI_EXPORTS
-		#define LUMINA_EXPORT __declspec(dllexport)
-	#else
-		#define LUMINA_EXPORT
-	#endif
+    #ifdef CORE_EXPORTS
+        #define CORE_API __declspec(dllexport)
+    #else
+        #define CORE_API __declspec(dllimport)
+    #endif
 #else
-	#define LUMINA_EXPORT __attribute__((visibility("default")))
+    #define CORE_API __attribute__((visibility("default")))
 #endif

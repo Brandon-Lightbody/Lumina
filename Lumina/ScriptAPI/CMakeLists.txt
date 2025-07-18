@@ -1,34 +1,23 @@
-# Build as STATIC library
-add_library(ScriptAPI STATIC src/ScriptEngine.cpp)
+# Build as SHARED library
+add_library(ScriptAPI SHARED 
+    src/ScriptEngine.cpp 
+    src/ScriptAPI.cpp
+)
 
-# Add CoreCLR headers and build directory
+# Add export definition
+target_compile_definitions(ScriptAPI PRIVATE SCRIPTAPI_EXPORTS)
+
+# Add CoreCLR headers
 target_include_directories(ScriptAPI PUBLIC 
     include
-    deps/nethost
-    ${CMAKE_CURRENT_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/deps/nethost
 )
 
 # Build managed assembly
 add_custom_target(build_managed_assembly
-    COMMAND dotnet build ${CMAKE_CURRENT_SOURCE_DIR}/managed -c $<CONFIG> -o ${CMAKE_CURRENT_BINARY_DIR}/managed
+    COMMAND dotnet build ${CMAKE_CURRENT_SOURCE_DIR}/managed -c $<CONFIG> -o ${CMAKE_BINARY_DIR}/bin
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/managed
     COMMENT "Building managed assembly"
-)
-
-# Generate embedded assembly header
-add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/EmbeddedAssembly.h
-    COMMAND ${CMAKE_COMMAND} 
-        -DINPUT_FILE="${CMAKE_CURRENT_BINARY_DIR}/managed/ManagedApp.dll"
-        -DOUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/EmbeddedAssembly.h
-        -P ${CMAKE_SOURCE_DIR}/cmake/EmbedAssembly.cmake
-    DEPENDS build_managed_assembly
-    COMMENT "Embedding managed assembly"
-)
-
-# Add generated header to sources
-target_sources(ScriptAPI PRIVATE 
-    ${CMAKE_CURRENT_BINARY_DIR}/EmbeddedAssembly.h
 )
 
 # Link dependencies
@@ -37,12 +26,15 @@ target_link_libraries(ScriptAPI PUBLIC Core Runtime)
 # Add dependency on managed assembly
 add_dependencies(ScriptAPI build_managed_assembly)
 
-# Copy runtime config
-add_custom_command(TARGET build_managed_assembly POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
+# Copy managed files to output directory
+add_custom_command(TARGET ScriptAPI POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/managed/ManagedApp.runtimeconfig.json
-        ${CMAKE_CURRENT_BINARY_DIR}/managed
-    COMMENT "Copying runtime config"
+        $<TARGET_FILE_DIR:ScriptAPI>
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_BINARY_DIR}/bin/ManagedApp.dll
+        $<TARGET_FILE_DIR:ScriptAPI>
+    COMMENT "Copying managed dependencies to output directory"
 )
 
 # Link Shlwapi on Windows

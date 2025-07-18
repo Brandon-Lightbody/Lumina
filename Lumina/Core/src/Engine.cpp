@@ -19,6 +19,7 @@ namespace Lumina {
 
     bool Engine::Initialize() {
         std::cout << "Engine initialized\n";
+
         return true;
     }
 
@@ -26,7 +27,6 @@ namespace Lumina {
         std::cout << "Engine shutdown\n";
     }
 
-    // Implement Get() method
     Engine& Engine::Get() {
         if (!s_Instance) {
             // Create a static instance if none exists

@@ -1,8 +1,9 @@
 #pragma once
 #include "Core/Engine.h"
+#include "RuntimeExports.h"
 
 namespace Lumina {
-    class Application {
+    class RUNTIME_API Application {
     public:
         Application();
         virtual ~Application() = default;

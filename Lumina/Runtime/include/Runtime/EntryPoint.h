@@ -1,7 +1,9 @@
 #pragma once
 
+#include "RuntimeExports.h"
+
 namespace Lumina {
-    class Application;
+    class RUNTIME_API Application;
 
     class EntryPoint {
     public:

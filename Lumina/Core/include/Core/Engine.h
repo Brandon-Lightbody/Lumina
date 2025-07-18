@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Defines.h"
+
 namespace Lumina {
     class Engine {
     public:
@@ -8,7 +10,6 @@ namespace Lumina {
 
         bool Initialize();
         void Shutdown();
-        void Run();
 
         bool IsRunning() const { return m_Running; }
         void Quit() { m_Running = false; }
