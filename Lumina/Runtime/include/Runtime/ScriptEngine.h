@@ -1,12 +1,22 @@
 #pragma once
-#include "ScriptAPI.h"
 #include <unordered_map>
 #include <string>
 #include <functional>
 #include <filesystem>
 
+// Forward declaration to avoid including ScriptAPI.h here
+#ifdef _WIN32
+#ifdef RUNTIME_EXPORTS
+#define RUNTIME_ENGINE_API __declspec(dllexport)
+#else
+#define RUNTIME_ENGINE_API __declspec(dllimport)
+#endif
+#else
+#define RUNTIME_ENGINE_API
+#endif
+
 namespace Lumina {
-    class SCRIPTAPI_EXPORT ScriptEngine {
+    class RUNTIME_ENGINE_API ScriptEngine {
     public:
         using StringCallback = void(*)(const char*);
 
@@ -19,7 +29,5 @@ namespace Lumina {
     private:
         static bool InitializeCoreClr();
         static std::filesystem::path GetCurrentModuleDirectory();
-
-        static std::unordered_map<std::string, StringCallback> native_methods;
     };
 }

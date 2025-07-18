@@ -1,10 +1,12 @@
-#include "../../ScriptAPI/include/ScriptAPI/ScriptAPI.h"
+#include "Runtime/ScriptAPI.h"
+#include "Runtime/RuntimeExports.h"
+
 #include <iostream>
 #include <fstream>
 #include <chrono>
 #include <iomanip>
 
-SCRIPTAPI_EXPORT void LogToNative(const char* message) {
+void LogToNative(const char* message) {
     try {
         if (message) {
             std::cout << "[Managed] " << message << std::endl;

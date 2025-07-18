@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Lumina.Managed
+namespace ScriptAPI
 {
     public static class NativeExports
     {
@@ -17,7 +17,7 @@ namespace Lumina.Managed
             LogToNative("Update called from managed code");
         }
 
-        [DllImport("ScriptAPI", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("Runtime", CallingConvention = CallingConvention.Cdecl)]
         private static extern void LogToNative(string message);
     }
 }

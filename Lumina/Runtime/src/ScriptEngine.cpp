@@ -1,7 +1,7 @@
-#include "ScriptAPI/ScriptEngine.h"
-#include "ScriptAPI/ScriptAPI.h"
-#include "coreclr_delegates.h"
-#include "hostfxr.h"
+#include "Runtime/ScriptEngine.h"
+#include "Runtime/ScriptAPI.h"
+#include "../ScriptAPI/deps/nethost/coreclr_delegates.h"
+#include "../ScriptAPI/deps/nethost/hostfxr.h"
 
 // Define get_hostfxr_parameters structure locally
 struct get_hostfxr_parameters {
@@ -32,8 +32,8 @@ struct get_hostfxr_parameters {
 using hostfxr_get_error_message_fn = int(*)(const char_t** message);
 
 namespace Lumina {
-    // Static members
-    std::unordered_map<std::string, ScriptEngine::StringCallback> ScriptEngine::native_methods;
+    // Define the native_methods map in the implementation file
+    static std::unordered_map<std::string, ScriptEngine::StringCallback> s_NativeMethods;
 
     // CoreCLR state
     static hostfxr_initialize_for_runtime_config_fn init_fptr = nullptr;
@@ -41,7 +41,7 @@ namespace Lumina {
     static hostfxr_close_fn close_fptr = nullptr;
     static hostfxr_get_error_message_fn error_fptr = nullptr;
     static hostfxr_handle host_context = nullptr;
-    static get_function_pointer_fn get_function_ptr = nullptr;
+    static load_assembly_and_get_function_pointer_fn load_assembly_and_get_fn = nullptr;
 
 #ifdef _WIN32
     std::wstring ConvertToWide(const std::string& str) {
@@ -49,6 +49,18 @@ namespace Lumina {
         std::wstring result(size, 0);
         MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &result[0], size);
         return result;
+    }
+
+    std::string ConvertToNarrow(const wchar_t* str) {
+        if (!str) return "";
+        int size = WideCharToMultiByte(CP_UTF8, 0, str, -1, nullptr, 0, nullptr, nullptr);
+        std::string result(size, 0);
+        WideCharToMultiByte(CP_UTF8, 0, str, -1, &result[0], size, nullptr, nullptr);
+        return result;
+    }
+#else
+    std::string ConvertToNarrow(const char* str) {
+        return str ? std::string(str) : "";
     }
 #endif
 
@@ -297,8 +309,8 @@ namespace Lumina {
         // Debug output
         std::cout << "Module directory: " << moduleDir.string() << "\n";
 
-        auto configPath = moduleDir / "ManagedApp.runtimeconfig.json";
-        auto assemblyPath = moduleDir / "ManagedApp.dll";
+        auto configPath = moduleDir / "ScriptAPI.runtimeconfig.json";
+        auto assemblyPath = moduleDir / "ScriptAPI.dll";
 
         std::cout << "Config path: " << configPath.string() << "\n";
         std::cout << "Assembly path: " << assemblyPath.string() << "\n";
@@ -328,22 +340,16 @@ namespace Lumina {
                 const char_t* error_detail = nullptr;
                 error_fptr(&error_detail);
                 if (error_detail) {
-#ifdef _WIN32
-                    int size = WideCharToMultiByte(CP_UTF8, 0, error_detail, -1, nullptr, 0, nullptr, nullptr);
-                    std::string detail(size, 0);
-                    WideCharToMultiByte(CP_UTF8, 0, error_detail, -1, &detail[0], size, nullptr, nullptr);
-                    std::cerr << "Error detail: " << detail << "\n";
-#else
-                    std::cerr << "Error detail: " << error_detail << "\n";
-#endif
+                    std::cerr << "Error detail: " << ConvertToNarrow(error_detail) << "\n";
                 }
             }
             return false;
         }
 
-        rc = get_delegate_fptr(host_context, hdt_get_function_pointer, (void**)&get_function_ptr);
-        if (rc != 0 || !get_function_ptr) {
-            std::cerr << "Failed to get get_function_pointer delegate: " << rc << "\n";
+        // Get load_assembly_and_get_function_pointer delegate
+        rc = get_delegate_fptr(host_context, hdt_load_assembly_and_get_function_pointer, (void**)&load_assembly_and_get_fn);
+        if (rc != 0 || !load_assembly_and_get_fn) {
+            std::cerr << "Failed to get load_assembly_and_get_function_pointer delegate: " << rc << "\n";
             return false;
         }
 
@@ -368,63 +374,41 @@ namespace Lumina {
     }
 
     void ScriptEngine::RegisterNativeMethod(const std::string& name, StringCallback callback) {
-        native_methods[name] = callback;
+        s_NativeMethods[name] = callback;
     }
 
     void ScriptEngine::ExecuteManagedFunction(const std::string& methodName) {
-        if (!get_function_ptr) {
-            throw std::runtime_error("CoreCLR not initialized - get_function_ptr is null");
+        if (!load_assembly_and_get_fn) {
+            throw std::runtime_error("CoreCLR not initialized - load_assembly_and_get_function_pointer is null");
         }
 
-        // Use explicit exports class
-        const char_t* type_name = STR("Lumina.Managed.NativeExports, ManagedApp");
+        const char_t* type_name = STR("ScriptAPI.NativeExports, ScriptAPI");
         const char_t* delegate_type = UNMANAGEDCALLERSONLY_METHOD;
         void* function = nullptr;
 
+        // Get the full path to the assembly
+        auto assemblyPath = GetCurrentModuleDirectory() / "ScriptAPI.dll";
+
 #ifdef _WIN32
+        std::wstring wassembly = assemblyPath.wstring();
         std::wstring wmethod = ConvertToWide(methodName);
         const char_t* method_name = wmethod.c_str();
+        const char_t* assembly_path = wassembly.c_str();
 #else
+        std::string sassembly = assemblyPath.string();
         const char_t* method_name = methodName.c_str();
+        const char_t* assembly_path = sassembly.c_str();
 #endif
 
-        // String conversion helper
-        auto ToNarrow = [](const char_t* str) -> std::string {
-            if (!str) return "null";
-#ifdef _WIN32
-            int size = WideCharToMultiByte(CP_UTF8, 0, str, -1, nullptr, 0, nullptr, nullptr);
-            std::string result(size, 0);
-            WideCharToMultiByte(CP_UTF8, 0, str, -1, &result[0], size, nullptr, nullptr);
-            return result;
-#else
-            return str;
-#endif
-            };
-
-        std::cout << "Resolving managed function: " << methodName << "\n";
-        std::cout << "Type: " << ToNarrow(type_name) << "\n";
-        std::cout << "Method: " << ToNarrow(method_name) << "\n";
-
-        int rc = get_function_ptr(
+        // Use load_assembly_and_get_function_pointer to get the function
+        int rc = load_assembly_and_get_fn(
+            assembly_path,
             type_name,
             method_name,
             delegate_type,
             nullptr,
-            nullptr,
             &function
         );
-
-        // Alternative resolution attempt
-        if (rc != 0 || !function) {
-            rc = get_function_ptr(
-                type_name,
-                method_name,
-                nullptr,  // Try without delegate type
-                nullptr,
-                nullptr,
-                &function
-            );
-        }
 
         if (rc != 0 || !function) {
             std::string error = "Failed to get function pointer: " + std::to_string(rc);
@@ -433,15 +417,14 @@ namespace Lumina {
                 const char_t* error_detail = nullptr;
                 error_fptr(&error_detail);
                 if (error_detail) {
-                    error += "\nDetail: " + ToNarrow(error_detail);
+                    error += "\nDetail: " + ConvertToNarrow(error_detail);
                 }
             }
 
-            error += "\nVerify:";
-            error += "\n- Method exists in ManagedApp.dll";
-            error += "\n- Has [UnmanagedCallersOnly] attribute";
-            error += "\n- Is public static";
-            error += "\n- Assembly is in same directory as ScriptAPI.dll";
+            // Additional debug information
+            error += "\nAssembly path: " + ConvertToNarrow(assembly_path);
+            error += "\nType: " + ConvertToNarrow(type_name);
+            error += "\nMethod: " + ConvertToNarrow(method_name);
 
             throw std::runtime_error(error);
         }

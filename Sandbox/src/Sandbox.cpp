@@ -1,5 +1,5 @@
 #include "Runtime/Application.h"
-#include "ScriptAPI/ScriptEngine.h"
+#include "Runtime/ScriptEngine.h"
 
 #include <iostream>
 
@@ -30,7 +30,7 @@ Lumina::Application* CreateApplication() {
 int main() {
     auto app = CreateApplication();
     app->Initialize();
-    delete app;
     std::cin.get();
+    delete app;
     return 0;
 }
