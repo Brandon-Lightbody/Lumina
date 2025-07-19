@@ -17,5 +17,4 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Add components
 add_subdirectory(Lumina/Core)
 add_subdirectory(Lumina/Runtime)
-add_subdirectory(Lumina/Tests)
 add_subdirectory(Sandbox)

@@ -5,12 +5,10 @@
 		<TargetFramework>net9.0</TargetFramework>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-		<!-- Fix output path to match build directory -->
-		<OutputPath>${CMAKE_BINARY_DIR}/bin</OutputPath>
 		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
 		<PublishAot>false</PublishAot>
 		<IlcGenerateUnmanagedEntryPoints>true</IlcGenerateUnmanagedEntryPoints>
-		<!-- Specify platform target -->
 		<PlatformTarget>x64</PlatformTarget>
+		<EnableDynamicLoading>true</EnableDynamicLoading>
 	</PropertyGroup>
 </Project>

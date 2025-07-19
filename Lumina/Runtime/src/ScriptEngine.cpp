@@ -1,7 +1,7 @@
 #include "Runtime/ScriptEngine.h"
 #include "Runtime/ScriptAPI.h"
-#include "../ScriptAPI/deps/nethost/coreclr_delegates.h"
-#include "../ScriptAPI/deps/nethost/hostfxr.h"
+#include "coreclr_delegates.h"
+#include "hostfxr.h"
 
 // Define get_hostfxr_parameters structure locally
 struct get_hostfxr_parameters {
@@ -330,7 +330,7 @@ namespace Lumina {
         int rc = init_fptr(wconfig.c_str(), nullptr, &host_context);
 #else
         int rc = init_fptr(configPath.string().c_str(), nullptr, &host_context);
-#endif
+#endif 
 
         if (rc != 0 || !host_context) {
             std::cerr << "hostfxr_initialize_for_runtime_config failed: "

@@ -1,4 +1,5 @@
 #include "Runtime/Application.h"
+#include "Runtime/EntryPoint.h"
 #include "Runtime/ScriptEngine.h"
 
 #include <iostream>
@@ -23,13 +24,9 @@ public:
     }
 };
 
-Lumina::Application* CreateApplication() {
-    return new Sandbox();
-}
-
 int main() {
-    auto app = CreateApplication();
-    app->Initialize();
+	Sandbox* app = new Sandbox();
+	Lumina::EntryPoint::Run(app);
     std::cin.get();
     delete app;
     return 0;
