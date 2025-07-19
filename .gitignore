@@ -6,7 +6,6 @@ obj/
 *.sln
 *.vcxproj*
 *.vcxproj.filters
-*.cmake
 CMakeSettings.json
 
 # Binaries and executables
