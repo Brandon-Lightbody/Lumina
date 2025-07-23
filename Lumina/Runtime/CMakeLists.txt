@@ -30,7 +30,7 @@ target_include_directories(Runtime PUBLIC
 
 target_link_libraries(Runtime PUBLIC Core)
 
-# Generate correct runtimeconfig
+# Generate runtimeconfig
 set(RUNTIMECONFIG_CONTENT
 "{
   \"runtimeOptions\": {
@@ -43,25 +43,30 @@ set(RUNTIMECONFIG_CONTENT
   }
 }")
 
-# Always write the correct runtimeconfig
-file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/scriptapi/ScriptAPI.runtimeconfig.json" ${RUNTIMECONFIG_CONTENT})
+# Write runtimeconfig to build directory
+file(WRITE "${CMAKE_BINARY_DIR}/ScriptAPI.runtimeconfig.json" ${RUNTIMECONFIG_CONTENT})
 
 # Build managed assembly with correct output path
-add_custom_target(build_scriptapi_assembly
-    COMMAND dotnet build ${CMAKE_CURRENT_SOURCE_DIR}/scriptapi -c $<CONFIG> -o ${CMAKE_BINARY_DIR}/bin
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/scriptapi
-    COMMENT "Building managed assembly"
+add_custom_command(
+  OUTPUT "${CMAKE_BINARY_DIR}/bin/ScriptAPI.dll"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/bin"
+  COMMAND dotnet build ${CMAKE_CURRENT_SOURCE_DIR}/scriptapi -c $<CONFIG> -o "${CMAKE_BINARY_DIR}/bin"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/scriptapi/ScriptAPI.csproj"
+  COMMENT "Building managed assembly"
+)
+
+add_custom_target(build_scriptapi_assembly ALL
+  DEPENDS "${CMAKE_BINARY_DIR}/bin/ScriptAPI.dll"
 )
 
 add_dependencies(Runtime build_scriptapi_assembly)
 
 # Copy all managed artifacts
 add_custom_command(TARGET Runtime POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/bin
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/scriptapi/ScriptAPI.runtimeconfig.json"
-        "${CMAKE_BINARY_DIR}/bin/ScriptAPI.runtimeconfig.json"
-    COMMENT "Copying managed dependencies to output directory"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_BINARY_DIR}/ScriptAPI.runtimeconfig.json"
+    "$<TARGET_FILE_DIR:Runtime>/ScriptAPI.runtimeconfig.json"
+  COMMENT "Copying managed configuration"
 )
 
 if(WIN32)
@@ -73,3 +78,30 @@ set_target_properties(Runtime PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+
+# Suppress linker warnings about duplicate exports
+if(MSVC)
+    set_target_properties(Runtime PROPERTIES
+        LINK_FLAGS "/ignore:4197"
+    )
+endif()
+
+# ASan and memory management
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # Exclude managed .NET components from sanitizers
+    set_target_properties(build_scriptapi_assembly PROPERTIES 
+        COMPILE_FLAGS ""
+        LINK_FLAGS ""
+    )
+    
+    # Add ASan DLL copy for Windows
+    if(WIN32)
+        copy_msvc_asan_dll(Runtime)
+        
+        # Workaround for VS debugger
+        if(MSVC)
+            target_compile_options(Runtime PRIVATE "/Zc:threadSafeInit-")
+            target_compile_definitions(Runtime PRIVATE _DISABLE_DEPRECATE_STATIC_CPPLIB)
+        endif()
+    endif()
+endif()

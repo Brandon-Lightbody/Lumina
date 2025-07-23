@@ -3,24 +3,28 @@
 
 #include <iostream>
 #include <fstream>
-#include <chrono>
-#include <iomanip>
+#include <mutex>
+
+// Single file stream instance with thread safety
+static std::ofstream& GetLogFile() {
+    static std::ofstream logfile("native_log.txt", std::ios::app);
+    return logfile;
+}
+
+static std::mutex logMutex;
 
 void LogToNative(const char* message) {
-    try {
-        if (message) {
-            std::cout << "[Managed] " << message << std::endl;
+    if (!message) return;
 
-            std::ofstream logfile("native_log.txt", std::ios::app);
-            if (logfile) {
-                auto now = std::chrono::system_clock::now();
-                auto now_c = std::chrono::system_clock::to_time_t(now);
-                logfile << "[" << std::put_time(std::localtime(&now_c), "%F %T")
-                    << "] " << message << "\n";
-            }
-        }
-    }
-    catch (...) {
-        std::cerr << "Exception in LogToNative handler\n";
+    // Use lock guard for thread safety
+    std::lock_guard<std::mutex> lock(logMutex);
+
+    // Faster output without flushing
+    std::cout << "[Managed] " << message << '\n';
+
+    // Reuse file stream
+    auto& logfile = GetLogFile();
+    if (logfile) {
+        logfile << message << '\n';
     }
 }

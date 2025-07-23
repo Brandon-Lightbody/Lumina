@@ -1,21 +1,47 @@
-# Base flags
-set(MY_FLAGS "-Wall -Wextra -Wpedantic -Wshadow -Werror")
-set(MY_FLAGS_DEBUG "-fsanitize=address,undefined -fno-omit-frame-pointer -O2")
-set(MY_FLAGS_RELEASE "-O3 -DNDEBUG")
-
-# Set init flags
-set(CMAKE_C_FLAGS_INIT "${MY_FLAGS}")
-set(CMAKE_CXX_FLAGS_INIT "${MY_FLAGS}")
-set(CMAKE_C_FLAGS_DEBUG_INIT "${MY_FLAGS_DEBUG}")
-set(CMAKE_CXX_FLAGS_DEBUG_INIT "${MY_FLAGS_DEBUG}")
-set(CMAKE_C_FLAGS_RELEASE_INIT "${MY_FLAGS_RELEASE}")
-set(CMAKE_CXX_FLAGS_RELEASE_INIT "${MY_FLAGS_RELEASE}")
-
-# Include vcpkg
-include(${CMAKE_CURRENT_LIST_DIR}/../vcpkg/scripts/buildsystems/vcpkg.cmake)
-
-# Handle MSVC specifics
-if(MSVC)
-    add_compile_options(/Zi)
-    add_link_options(/DEBUG)
+# Only apply to debug builds
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+  return()
 endif()
+
+# Add version check
+if(MSVC AND MSVC_VERSION LESS 1929)
+  message(WARNING "MSVC ASan requires VS 2019 v16.9+. Disabling ASan.")
+  return()
+endif()
+
+# Compiler-specific sanitizer configuration
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  # MSVC native ASan
+  add_compile_options(/fsanitize=address /Zi /Oy-)
+  add_link_options(/DEBUG:FASTLINK /INCREMENTAL:NO)
+  
+  # Workaround for debugger integration
+  add_compile_definitions(
+    _DISABLE_STRING_ANNOTATION 
+    _DISABLE_VECTOR_ANNOTATION
+    _ITERATOR_DEBUG_LEVEL=0
+    _CRT_NOFORCE_MANIFEST
+  )
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  # Clang or clang-cl sanitizer flags
+  if(MSVC)
+    # clang-cl (Windows)
+    add_compile_options(
+      /fsanitize=address,undefined
+      /fno-omit-frame-pointer
+    )
+    add_link_options(
+      /fsanitize=address,undefined
+    )
+  else()
+    # Standard Clang (Linux/macOS)
+    add_compile_options(
+      -fsanitize=address,undefined
+      -fno-omit-frame-pointer
+    )
+    add_link_options(-fsanitize=address,undefined)
+  endif()
+endif()
+
+# Include vcpkg AFTER setting flags
+include("${CMAKE_CURRENT_LIST_DIR}/../vcpkg/scripts/buildsystems/vcpkg.cmake" OPTIONAL)

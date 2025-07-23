@@ -25,9 +25,17 @@ namespace Lumina {
         static void RegisterNativeMethod(const std::string& name, StringCallback callback);
         static void ExecuteManagedFunction(const std::string& methodName);
         static void CreateString(StringCallback callback, const char* message);
+        static void ShutdownManaged();
 
     private:
         static bool InitializeCoreClr();
         static std::filesystem::path GetCurrentModuleDirectory();
+        static bool LoadHostFxr();
+
+        // Add static variable for hostfxr library
+        static void* s_hostfxrLib;
+
+        // Function pointer cache
+        static std::unordered_map<std::string, void*> s_FunctionCache;
     };
 }

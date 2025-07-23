@@ -7,6 +7,6 @@ namespace Lumina {
 
     class RUNTIME_API EntryPoint {
     public:
-        static int Run(Application* application);
+        static void Run(Application* application);
     };
 } // namespace Lumina

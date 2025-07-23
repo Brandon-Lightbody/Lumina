@@ -15,6 +15,7 @@ struct get_hostfxr_parameters {
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <thread>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -43,10 +44,15 @@ namespace Lumina {
     static hostfxr_handle host_context = nullptr;
     static load_assembly_and_get_function_pointer_fn load_assembly_and_get_fn = nullptr;
 
+    // Initialize static variables
+    void* ScriptEngine::s_hostfxrLib = nullptr;
+    std::unordered_map<std::string, void*> ScriptEngine::s_FunctionCache;
+
 #ifdef _WIN32
     std::wstring ConvertToWide(const std::string& str) {
         int size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);
-        std::wstring result(size, 0);
+        if (size <= 0) return L"";
+        std::wstring result(size - 1, 0);
         MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &result[0], size);
         return result;
     }
@@ -54,7 +60,8 @@ namespace Lumina {
     std::string ConvertToNarrow(const wchar_t* str) {
         if (!str) return "";
         int size = WideCharToMultiByte(CP_UTF8, 0, str, -1, nullptr, 0, nullptr, nullptr);
-        std::string result(size, 0);
+        if (size <= 0) return "";
+        std::string result(size - 1, 0);
         WideCharToMultiByte(CP_UTF8, 0, str, -1, &result[0], size, nullptr, nullptr);
         return result;
     }
@@ -223,7 +230,10 @@ namespace Lumina {
         return 0;
     }
 
-    bool LoadHostFxr() {
+    bool ScriptEngine::LoadHostFxr() {
+        // Only load once
+        if (s_hostfxrLib) return true;
+
         size_t buffer_size = MAX_PATH;
         std::vector<char_t> buffer(buffer_size);
 
@@ -246,6 +256,9 @@ namespace Lumina {
             std::cerr << "Failed to load hostfxr library\n";
             return false;
         }
+
+        // Store library handle for later unloading
+        s_hostfxrLib = lib;
 
         init_fptr = (hostfxr_initialize_for_runtime_config_fn)GetExport(lib, "hostfxr_initialize_for_runtime_config");
         get_delegate_fptr = (hostfxr_get_runtime_delegate_fn)GetExport(lib, "hostfxr_get_runtime_delegate");
@@ -367,9 +380,48 @@ namespace Lumina {
     }
 
     void ScriptEngine::Shutdown() {
+        // Clear function cache
+        s_FunctionCache.clear();
+
+        // Release managed resources
+        ShutdownManaged();
+
+        // Clear native methods map
+        s_NativeMethods.clear();
+
         if (close_fptr && host_context) {
             close_fptr(host_context);
             host_context = nullptr;
+        }
+
+        // Unload hostfxr library
+        if (s_hostfxrLib) {
+#ifdef _WIN32
+            FreeLibrary(static_cast<HMODULE>(s_hostfxrLib));
+#else
+            dlclose(s_hostfxrLib);
+#endif
+            s_hostfxrLib = nullptr;
+        }
+    }
+
+    void ScriptEngine::ShutdownManaged() {
+        if (!load_assembly_and_get_fn) return;
+
+        try {
+            // First try to call the managed shutdown function
+            ExecuteManagedFunction("ShutdownManaged");
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Managed shutdown failed: " << e.what() << "\n";
+        }
+
+        // Then try to release managed resources
+        try {
+            ExecuteManagedFunction("ReleaseManagedResources");
+        }
+        catch (const std::exception& e) {
+            std::cerr << "Managed resource release failed: " << e.what() << "\n";
         }
     }
 
@@ -380,6 +432,19 @@ namespace Lumina {
     void ScriptEngine::ExecuteManagedFunction(const std::string& methodName) {
         if (!load_assembly_and_get_fn) {
             throw std::runtime_error("CoreCLR not initialized - load_assembly_and_get_function_pointer is null");
+        }
+
+        // Check cache first to prevent repeated delegate creation
+        auto it = s_FunctionCache.find(methodName);
+        if (it != s_FunctionCache.end()) {
+            try {
+                reinterpret_cast<void(*)()>(it->second)();
+                return;
+            }
+            catch (...) {
+                // Remove stale function pointer from cache
+                s_FunctionCache.erase(methodName);
+            }
         }
 
         const char_t* type_name = STR("ScriptAPI.NativeExports, ScriptAPI");
@@ -429,11 +494,15 @@ namespace Lumina {
             throw std::runtime_error(error);
         }
 
+        // Add to cache
+        s_FunctionCache[methodName] = function;
+
         try {
             reinterpret_cast<void(*)()>(function)();
-            std::cout << "Successfully executed managed function: " << methodName << "\n";
         }
         catch (const std::exception& e) {
+            // Remove invalid function from cache
+            s_FunctionCache.erase(methodName);
             std::cerr << "Managed exception: " << e.what() << "\n";
             throw;
         }

@@ -6,7 +6,7 @@ namespace Lumina {
     class RUNTIME_API Application {
     public:
         Application();
-        virtual ~Application() = default;
+        virtual ~Application();  // Declaration only
 
         virtual void Initialize() = 0;
         virtual void Update() = 0;

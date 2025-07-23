@@ -2,7 +2,6 @@
 #include <iostream>
 
 namespace Lumina {
-    // Initialize static member
     Engine* Engine::s_Instance = nullptr;
 
     Engine::Engine() {
@@ -14,12 +13,13 @@ namespace Lumina {
     }
 
     Engine::~Engine() {
-        s_Instance = nullptr;
+        if (s_Instance == this) {
+            s_Instance = nullptr;
+        }
     }
 
     bool Engine::Initialize() {
         std::cout << "Engine initialized\n";
-
         return true;
     }
 
