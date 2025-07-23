@@ -2,7 +2,26 @@
   "name": "lumina",
   "version-string": "0.1.0",
   "dependencies": [
+    "glm",
+    "shaderc",
+    "vulkan-headers",
+    "directx-headers",
+    "freetype",
+    "spirv-cross",
     "catch2"
   ],
-  "builtin-baseline": "3426db05b996481ca31e95fff3734cf23e0f51bc"
+  "builtin-baseline": "3426db05b996481ca31e95fff3734cf23e0f51bc",
+  "overrides": [
+    {
+      "name": "nri",
+      "version": "1.120",
+      "port-version": 0
+    }
+  ],
+  "features": {
+    "raytracing": {
+      "description": "Enable ray tracing support",
+      "dependencies": [ "directx-headers" ]
+    }
+  }
 }

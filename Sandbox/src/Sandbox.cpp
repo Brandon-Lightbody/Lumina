@@ -10,31 +10,10 @@
 #include <cstdlib>    // For _putenv
 #endif
 
-void TriggerASanError() {
-    // Heap buffer overflow
-    int* array = new int[10];
-    array[10] = 42;  // Out-of-bounds write
-    delete[] array;
-
-    // Use-after-free
-    int* ptr = new int(123);
-    delete ptr;
-    *ptr = 456;  // Use after free
-
-    // Stack buffer overflow
-    int stack_array[5];
-    stack_array[5] = 789;  // Out-of-bounds write
-
-    // Memory leak (should be detected if enabled)
-    int* leak = new int[100];
-}
-
 class Sandbox : public Lumina::Application {
 public:
     void Initialize() override {
         std::cout << "[Sandbox] Initializing...\n";
-
-        TriggerASanError();
 
         Lumina::ScriptEngine::Initialize();
         Lumina::ScriptEngine::ExecuteManagedFunction("InitializeManaged");

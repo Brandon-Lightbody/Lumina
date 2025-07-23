@@ -4,18 +4,86 @@ if(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
+set(RENDERER_SOURCES
+    src/Renderer/Core/Renderer.cpp
+    src/Renderer/Core/RendererAPI.cpp
+    src/Renderer/Core/FrameGraph.cpp
+    src/Renderer/NRI/NRIRenderer.cpp
+    src/Renderer/Resources/ResourceManager.cpp
+    src/Renderer/Resources/Texture.cpp
+    src/Renderer/Resources/Buffer.cpp
+    src/Renderer/Lighting/Lighting.cpp
+    src/Renderer/Lighting/ClusteredShading.cpp
+    src/Renderer/Lighting/Shadows.cpp
+    src/Renderer/RayTracing/RayTracingCore.cpp
+    src/Renderer/RayTracing/AccelerationStructure.cpp
+    src/Renderer/RayTracing/HybridRendering.cpp
+    src/Renderer/PostProcess/PostProcessing.cpp
+    src/Renderer/PostProcess/Bloom.cpp
+    src/Renderer/PostProcess/ToneMapping.cpp
+    src/Renderer/Text/TextRenderer.cpp
+    src/Renderer/Text/FontAtlas.cpp
+    src/Renderer/Text/SDFGenerator.cpp
+    src/Renderer/Debug/DebugRenderer.cpp
+    src/Renderer/Debug/Gizmos.cpp
+    src/Renderer/Shading/MaterialSystem.cpp
+    src/Renderer/Shading/ShaderSystem.cpp
+    src/Renderer/Rendering/InstancedRenderer.cpp
+    src/Renderer/Rendering/Mesh.cpp
+    src/Renderer/Rendering/RenderQueue.cpp
+    src/Renderer/Shaders/ShaderCompiler.cpp
+    src/Renderer/Shaders/ShaderReflection.cpp
+    src/Renderer/Scene/Camera.cpp
+    src/Renderer/Scene/Scene.cpp
+)
+
+set(RENDERER_HEADERS
+    include/Runtime/Renderer/Renderer.h
+    include/Runtime/Renderer/RendererAPI.h
+    include/Runtime/Renderer/FrameGraph.h
+    include/Runtime/Renderer/ResourceManager.h
+    include/Runtime/Renderer/Texture.h
+    include/Runtime/Renderer/Buffer.h
+    include/Runtime/Renderer/Lighting.h
+    include/Runtime/Renderer/ClusteredShading.h
+    include/Runtime/Renderer/Shadows.h
+    include/Runtime/Renderer/RayTracingCore.h
+    include/Runtime/Renderer/AccelerationStructure.h
+    include/Runtime/Renderer/HybridRendering.h
+    include/Runtime/Renderer/PostProcessing.h
+    include/Runtime/Renderer/Bloom.h
+    include/Runtime/Renderer/ToneMapping.h
+    include/Runtime/Renderer/TextRenderer.h
+    include/Runtime/Renderer/FontAtlas.h
+    include/Runtime/Renderer/SDFGenerator.h
+    include/Runtime/Renderer/DebugRenderer.h
+    include/Runtime/Renderer/Gizmos.h
+    include/Runtime/Renderer/MaterialSystem.h
+    include/Runtime/Renderer/ShaderSystem.h
+    include/Runtime/Renderer/InstancedRenderer.h
+    include/Runtime/Renderer/Mesh.h
+    include/Runtime/Renderer/RenderQueue.h
+    include/Runtime/Renderer/ShaderCompiler.h
+    include/Runtime/Renderer/ShaderReflection.h
+    include/Runtime/Renderer/Camera.h
+    include/Runtime/Renderer/Scene.h
+)
+
 set(RUNTIME_SOURCES
     src/EntryPoint.cpp
     src/Application.cpp
     src/ScriptEngine.cpp
     src/ScriptAPI.cpp
+    ${RENDERER_SOURCES}
 )
 
 set(RUNTIME_HEADERS
     include/Runtime/Application.h
     include/Runtime/EntryPoint.h
-    include/Runtime/ScriptEngine.h
+    include/Runtime/RuntimeExports.h
     include/Runtime/ScriptAPI.h
+    include/Runtime/ScriptEngine.h
+    ${RENDERER_HEADERS}
 )
 
 add_library(Runtime SHARED ${RUNTIME_SOURCES} ${RUNTIME_HEADERS})
