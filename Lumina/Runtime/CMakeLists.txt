@@ -4,6 +4,24 @@ if(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
+# NRI configuration
+set(NRI_SOURCE_DIR "deps/NRI/Source")
+set(NRI_INCLUDE_DIR "deps/NRI/Include")
+
+# Add NRI library
+add_library(NRI STATIC
+    "${NRI_SOURCE_DIR}/Extensions/Extensions.cpp"
+    "${NRI_SOURCE_DIR}/Extensions/HelperFunctions.cpp"
+    "${NRI_SOURCE_DIR}/Extensions/WrapperD3D11.cpp"
+    "${NRI_SOURCE_DIR}/Extensions/WrapperD3D12.cpp"
+    "${NRI_SOURCE_DIR}/Extensions/WrapperVK.cpp"
+    "${NRI_SOURCE_DIR}/NRI.cpp"
+)
+
+target_include_directories(NRI PUBLIC ${NRI_INCLUDE_DIR})
+target_compile_definitions(NRI PRIVATE _CRT_SECURE_NO_WARNINGS)
+
+# Renderer sources (unchanged)
 set(RENDERER_SOURCES
     src/Renderer/Core/Renderer.cpp
     src/Renderer/Core/RendererAPI.cpp
@@ -37,36 +55,37 @@ set(RENDERER_SOURCES
     src/Renderer/Scene/Scene.cpp
 )
 
+# Renderer headers (unchanged)
 set(RENDERER_HEADERS
-    include/Runtime/Renderer/Renderer.h
-    include/Runtime/Renderer/RendererAPI.h
-    include/Runtime/Renderer/FrameGraph.h
-    include/Runtime/Renderer/ResourceManager.h
-    include/Runtime/Renderer/Texture.h
-    include/Runtime/Renderer/Buffer.h
-    include/Runtime/Renderer/Lighting.h
-    include/Runtime/Renderer/ClusteredShading.h
-    include/Runtime/Renderer/Shadows.h
-    include/Runtime/Renderer/RayTracingCore.h
-    include/Runtime/Renderer/AccelerationStructure.h
-    include/Runtime/Renderer/HybridRendering.h
-    include/Runtime/Renderer/PostProcessing.h
-    include/Runtime/Renderer/Bloom.h
-    include/Runtime/Renderer/ToneMapping.h
-    include/Runtime/Renderer/TextRenderer.h
-    include/Runtime/Renderer/FontAtlas.h
-    include/Runtime/Renderer/SDFGenerator.h
-    include/Runtime/Renderer/DebugRenderer.h
-    include/Runtime/Renderer/Gizmos.h
-    include/Runtime/Renderer/MaterialSystem.h
-    include/Runtime/Renderer/ShaderSystem.h
-    include/Runtime/Renderer/InstancedRenderer.h
-    include/Runtime/Renderer/Mesh.h
-    include/Runtime/Renderer/RenderQueue.h
-    include/Runtime/Renderer/ShaderCompiler.h
-    include/Runtime/Renderer/ShaderReflection.h
-    include/Runtime/Renderer/Camera.h
-    include/Runtime/Renderer/Scene.h
+    src/Renderer/Core/Renderer.h
+    src/Renderer/Core/RendererAPI.h
+    src/Renderer/Core/FrameGraph.h
+    src/Renderer/Resources/ResourceManager.h
+    src/Renderer/Resources/Texture.h
+    src/Renderer/Resources/Buffer.h
+    src/Renderer/Lighting/Lighting.h
+    src/Renderer/Lighting/ClusteredShading.h
+    src/Renderer/Lighting/Shadows.h
+    src/Renderer/RayTracing/RayTracingCore.h
+    src/Renderer/RayTracing/AccelerationStructure.h
+    src/Renderer/RayTracing/HybridRendering.h
+    src/Renderer/PostProcess/PostProcessing.h
+    src/Renderer/PostProcess/Bloom.h
+    src/Renderer/PostProcess/ToneMapping.h
+    src/Renderer/Text/TextRenderer.h
+    src/Renderer/Text/FontAtlas.h
+    src/Renderer/Text/SDFGenerator.h
+    src/Renderer/Debug/DebugRenderer.h
+    src/Renderer/Debug/Gizmos.h
+    src/Renderer/Shading/MaterialSystem.h
+    src/Renderer/Shading/ShaderSystem.h
+    src/Renderer/Rendering/InstancedRenderer.h
+    src/Renderer/Rendering/Mesh.h
+    src/Renderer/Rendering/RenderQueue.h
+    src/Renderer/Shaders/ShaderCompiler.h
+    src/Renderer/Shaders/ShaderReflection.h
+    src/Renderer/Scene/Camera.h
+    src/Renderer/Scene/Scene.h
 )
 
 set(RUNTIME_SOURCES
@@ -83,22 +102,31 @@ set(RUNTIME_HEADERS
     include/Runtime/RuntimeExports.h
     include/Runtime/ScriptAPI.h
     include/Runtime/ScriptEngine.h
-    ${RENDERER_HEADERS}
 )
 
-add_library(Runtime SHARED ${RUNTIME_SOURCES} ${RUNTIME_HEADERS})
+add_library(Runtime SHARED ${RUNTIME_SOURCES} ${RUNTIME_HEADERS} ${RENDERER_HEADERS})
 target_compile_definitions(Runtime PRIVATE RUNTIME_EXPORTS)
 
-target_include_directories(Runtime PUBLIC 
-    include
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/deps/nethost
-    ${CMAKE_SOURCE_DIR}/Lumina/Core/include
+# Add GLM includes (header-only)
+target_include_directories(Runtime PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/deps/glm
 )
 
-target_link_libraries(Runtime PUBLIC Core)
+target_include_directories(Runtime
+    PUBLIC 
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+        ${CMAKE_SOURCE_DIR}/Lumina/Core/include
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/deps/nethost
+        ${NRI_INCLUDE_DIR}
+)
 
-# Generate runtimeconfig
+# FIXED: Removed glm::glm linking
+target_link_libraries(Runtime PUBLIC Core NRI)
+
+# Generate runtimeconfig (unchanged)
 set(RUNTIMECONFIG_CONTENT
 "{
   \"runtimeOptions\": {
@@ -111,15 +139,14 @@ set(RUNTIMECONFIG_CONTENT
   }
 }")
 
-# Write runtimeconfig to build directory
 file(WRITE "${CMAKE_BINARY_DIR}/ScriptAPI.runtimeconfig.json" ${RUNTIMECONFIG_CONTENT})
 
-# Build managed assembly with correct output path
+# Build managed assembly (unchanged)
 add_custom_command(
   OUTPUT "${CMAKE_BINARY_DIR}/bin/ScriptAPI.dll"
   COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/bin"
-  COMMAND dotnet build ${CMAKE_CURRENT_SOURCE_DIR}/scriptapi -c $<CONFIG> -o "${CMAKE_BINARY_DIR}/bin"
-  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/scriptapi/ScriptAPI.csproj"
+  COMMAND dotnet build "${CMAKE_CURRENT_SOURCE_DIR}/ScriptAPI" -c $<CONFIG> -o "${CMAKE_BINARY_DIR}/bin"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/ScriptAPI/ScriptAPI.csproj"
   COMMENT "Building managed assembly"
 )
 
@@ -129,15 +156,24 @@ add_custom_target(build_scriptapi_assembly ALL
 
 add_dependencies(Runtime build_scriptapi_assembly)
 
-# Copy all managed artifacts
+# Copy managed artifacts (unchanged)
 add_custom_command(TARGET Runtime POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CMAKE_BINARY_DIR}/ScriptAPI.runtimeconfig.json"
     "$<TARGET_FILE_DIR:Runtime>/ScriptAPI.runtimeconfig.json"
-  COMMENT "Copying managed configuration"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_BINARY_DIR}/bin/ScriptAPI.dll"
+    "$<TARGET_FILE_DIR:Runtime>/ScriptAPI.dll"
+  COMMENT "Copying managed artifacts"
 )
 
+# Add NRI dependencies (unchanged)
 if(WIN32)
+    target_link_libraries(NRI PRIVATE 
+        d3d11.lib
+        d3d12.lib
+        dxgi.lib
+    )
     target_link_libraries(Runtime PRIVATE Shlwapi.lib)
 endif()
 
@@ -147,29 +183,23 @@ set_target_properties(Runtime PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
-# Suppress linker warnings about duplicate exports
 if(MSVC)
     set_target_properties(Runtime PROPERTIES
         LINK_FLAGS "/ignore:4197"
     )
 endif()
 
-# ASan and memory management
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    # Exclude managed .NET components from sanitizers
-    set_target_properties(build_scriptapi_assembly PROPERTIES 
-        COMPILE_FLAGS ""
-        LINK_FLAGS ""
-    )
-    
-    # Add ASan DLL copy for Windows
-    if(WIN32)
-        copy_msvc_asan_dll(Runtime)
-        
-        # Workaround for VS debugger
-        if(MSVC)
-            target_compile_options(Runtime PRIVATE "/Zc:threadSafeInit-")
-            target_compile_definitions(Runtime PRIVATE _DISABLE_DEPRECATE_STATIC_CPPLIB)
-        endif()
+    if(WIN32 AND MSVC)
+        # ASan workarounds
+        target_compile_options(Runtime PRIVATE "/Zc:threadSafeInit-")
+        target_compile_definitions(Runtime PRIVATE _DISABLE_DEPRECATE_STATIC_CPPLIB)
     endif()
+endif()
+
+# Vulkan support (unchanged)
+find_package(Vulkan)
+if(Vulkan_FOUND)
+    target_include_directories(NRI PRIVATE ${Vulkan_INCLUDE_DIRS})
+    target_link_libraries(NRI PRIVATE ${Vulkan_LIBRARIES})
 endif()

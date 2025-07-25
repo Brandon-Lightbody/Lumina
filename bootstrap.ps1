@@ -15,8 +15,14 @@ $ConfigMap = @{
 $ConfigPreset = $ConfigMap[$Preset]
 
 # Update submodules
-Write-Host "Updating submodules and vcpkg..." -ForegroundColor Cyan
+Write-Host "Updating submodules..." -ForegroundColor Cyan
 git submodule update --init --recursive
+
+# Initialize NRI submodule specifically
+Write-Host "Initializing NRI submodule..." -ForegroundColor Cyan
+Push-Location "Lumina/Runtime/deps/NRI"
+git submodule update --init --recursive
+Pop-Location
 
 # Configure and build
 Write-Host "Configuring $Preset build..." -ForegroundColor Cyan

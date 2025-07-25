@@ -1,9 +1,6 @@
-[submodule "cmake-repo"]
-    path = cmake-repo
-    url = https://github.com/your-username/cmake-repo.git
-[submodule "Lumina/Runtime/deps/NRI"]
-	path = Lumina/Runtime/deps/NRI
-	url = https://github.com/NVIDIAGameWorks/NRI.git
 [submodule "Lumina/Runtime/deps/glm"]
 	path = Lumina/Runtime/deps/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "Lumina/Runtime/deps/NRI"]
+	path = Lumina/Runtime/deps/NRI
+	url = https://github.com/NVIDIAGameWorks/NRI.git
