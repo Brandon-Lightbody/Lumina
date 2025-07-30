@@ -4,3 +4,6 @@
 [submodule "Lumina/Runtime/deps/NRI"]
 	path = Lumina/Runtime/deps/NRI
 	url = https://github.com/NVIDIAGameWorks/NRI.git
+[submodule "deps/NRI"]
+	path = deps/NRI
+	url = https://github.com/NVIDIA-RTX/NRI.git
