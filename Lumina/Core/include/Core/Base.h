@@ -6,7 +6,6 @@
 #include <vector>
 #include <unordered_map>
 #include <functional>
-#include <glm/glm.hpp>
 
 #define LUMINA_DLL_EXPORT __declspec(dllexport)
 #define LUMINA_DLL_IMPORT __declspec(dllimport)

@@ -6,6 +6,24 @@
 
 namespace Lumina
 {
+    enum class ShaderStage {
+        VERTEX,
+        FRAGMENT,
+        COMPUTE,
+        GEOMETRY,
+        TESS_CONTROL,
+        TESS_EVALUATION,
+        RAYGEN,
+        MISS,
+        CLOSEST_HIT,
+        ANY_HIT,
+        INTERSECTION,
+        MESH_CONTROL,
+        MESH_EVALUATION,
+        TASK,
+        MAX_NUM
+    };
+
     class ShaderCompiler
     {
     public:
@@ -19,12 +37,12 @@ namespace Lumina
         std::future<ShaderBlob> CompileShaderAsync(
             const std::string& filePath,
             const std::string& entryPoint,
-            nri::ShaderStage stage);
+            ShaderStage stage);
 
         static nri::ShaderDesc CreateShaderDesc(const ShaderBlob& blob);
 
     private:
-        ShaderBlob CompileGLSL(const std::string& source, nri::ShaderStage stage, const std::string& sourceName);
-        ShaderBlob CompileHLSL(const std::string& source, const std::string& entryPoint, nri::ShaderStage stage, const std::string& sourceName);
+        ShaderBlob CompileGLSL(const std::string& source, ShaderStage stage, const std::string& sourceName);
+        ShaderBlob CompileHLSL(const std::string& source, const std::string& entryPoint, ShaderStage stage, const std::string& sourceName);
     };
 }

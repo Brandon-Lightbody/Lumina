@@ -4,24 +4,6 @@ if(WIN32)
     set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
-# NRI configuration
-set(NRI_SOURCE_DIR "deps/NRI/Source")
-set(NRI_INCLUDE_DIR "deps/NRI/Include")
-
-# Add NRI library
-add_library(NRI STATIC
-    "${NRI_SOURCE_DIR}/Extensions/Extensions.cpp"
-    "${NRI_SOURCE_DIR}/Extensions/HelperFunctions.cpp"
-    "${NRI_SOURCE_DIR}/Extensions/WrapperD3D11.cpp"
-    "${NRI_SOURCE_DIR}/Extensions/WrapperD3D12.cpp"
-    "${NRI_SOURCE_DIR}/Extensions/WrapperVK.cpp"
-    "${NRI_SOURCE_DIR}/NRI.cpp"
-)
-
-target_include_directories(NRI PUBLIC ${NRI_INCLUDE_DIR})
-target_compile_definitions(NRI PRIVATE _CRT_SECURE_NO_WARNINGS)
-
-# Renderer sources (unchanged)
 set(RENDERER_SOURCES
     src/Renderer/Core/Renderer.cpp
     src/Renderer/Core/RendererAPI.cpp
@@ -55,7 +37,6 @@ set(RENDERER_SOURCES
     src/Renderer/Scene/Scene.cpp
 )
 
-# Renderer headers (unchanged)
 set(RENDERER_HEADERS
     src/Renderer/Core/Renderer.h
     src/Renderer/Core/RendererAPI.h
@@ -107,26 +88,57 @@ set(RUNTIME_HEADERS
 add_library(Runtime SHARED ${RUNTIME_SOURCES} ${RUNTIME_HEADERS} ${RENDERER_HEADERS})
 target_compile_definitions(Runtime PRIVATE RUNTIME_EXPORTS)
 
-# Add GLM includes (header-only)
-target_include_directories(Runtime PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/deps/glm
+# SPIRV-Cross using proper CMake targets from vcpkg
+include(C:/vcpkg/scripts/buildsystems/vcpkg.cmake)
+find_package(spirv_cross_core REQUIRED)
+find_package(spirv_cross_util REQUIRED)
+
+find_package(shaderc)
+
+target_link_libraries(Runtime
+    PRIVATE
+        spirv-cross-cpp
+        spirv-cross-core
+        spirv-cross-reflect
+        spirv-cross-util
 )
+
+set(unofficial-shaderc_DIR "C:/vcpkg/installed/x64-windows/share/unofficial-shaderc")
+# Shaderc from vcpkg
+find_package(unofficial-shaderc CONFIG REQUIRED)
+
+target_link_libraries(Runtime
+    PRIVATE
+        unofficial::shaderc::shaderc
+)
+
+set(NRI_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/deps/NRI/Include")
 
 target_include_directories(Runtime
     PUBLIC 
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
         ${CMAKE_SOURCE_DIR}/Lumina/Core/include
+        ${NRI_INCLUDE_DIRS}
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${CMAKE_CURRENT_SOURCE_DIR}/deps/nethost
-        ${NRI_INCLUDE_DIR}
+        deps/nethost
 )
 
-# FIXED: Removed glm::glm linking
-target_link_libraries(Runtime PUBLIC Core NRI)
+target_link_libraries(Runtime PUBLIC Core)
 
-# Generate runtimeconfig (unchanged)
+include(FetchContent)
+
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG bf71a834948186f4097caa076cd2663c69a10e1e
+)
+
+FetchContent_MakeAvailable(glm)
+
+target_link_libraries(Runtime PRIVATE glm::glm)
+
 set(RUNTIMECONFIG_CONTENT
 "{
   \"runtimeOptions\": {
@@ -141,7 +153,6 @@ set(RUNTIMECONFIG_CONTENT
 
 file(WRITE "${CMAKE_BINARY_DIR}/ScriptAPI.runtimeconfig.json" ${RUNTIMECONFIG_CONTENT})
 
-# Build managed assembly (unchanged)
 add_custom_command(
   OUTPUT "${CMAKE_BINARY_DIR}/bin/ScriptAPI.dll"
   COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/bin"
@@ -156,24 +167,14 @@ add_custom_target(build_scriptapi_assembly ALL
 
 add_dependencies(Runtime build_scriptapi_assembly)
 
-# Copy managed artifacts (unchanged)
 add_custom_command(TARGET Runtime POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CMAKE_BINARY_DIR}/ScriptAPI.runtimeconfig.json"
     "$<TARGET_FILE_DIR:Runtime>/ScriptAPI.runtimeconfig.json"
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    "${CMAKE_BINARY_DIR}/bin/ScriptAPI.dll"
-    "$<TARGET_FILE_DIR:Runtime>/ScriptAPI.dll"
-  COMMENT "Copying managed artifacts"
+  COMMENT "Copying managed configuration"
 )
 
-# Add NRI dependencies (unchanged)
 if(WIN32)
-    target_link_libraries(NRI PRIVATE 
-        d3d11.lib
-        d3d12.lib
-        dxgi.lib
-    )
     target_link_libraries(Runtime PRIVATE Shlwapi.lib)
 endif()
 
@@ -191,15 +192,7 @@ endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     if(WIN32 AND MSVC)
-        # ASan workarounds
         target_compile_options(Runtime PRIVATE "/Zc:threadSafeInit-")
         target_compile_definitions(Runtime PRIVATE _DISABLE_DEPRECATE_STATIC_CPPLIB)
     endif()
-endif()
-
-# Vulkan support (unchanged)
-find_package(Vulkan)
-if(Vulkan_FOUND)
-    target_include_directories(NRI PRIVATE ${Vulkan_INCLUDE_DIRS})
-    target_link_libraries(NRI PRIVATE ${Vulkan_LIBRARIES})
 endif()

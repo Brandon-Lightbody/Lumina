@@ -1,6 +1,8 @@
 #include "Runtime/Application.h"
 #include "Core/Engine.h"
 
+#include <glm/glm.hpp>
+
 namespace Lumina {
     Application::Application() : m_Engine(&Engine::Get()) {}
 

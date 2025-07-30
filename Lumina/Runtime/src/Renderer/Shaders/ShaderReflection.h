@@ -12,7 +12,7 @@ namespace Lumina
             uint32_t set;
             uint32_t binding;
             nri::DescriptorType type;
-            nri::ShaderStage stage;
+            ShaderStage stage;
         };
 
         ShaderReflection(const std::vector<uint32_t>& spirv);

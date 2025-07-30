@@ -1,5 +1,5 @@
 #include "ShaderReflection.h"
-#include <spirv_cross/spirv_cross.hpp>
+#include <spirv_cross.hpp>
 
 namespace Lumina
 {

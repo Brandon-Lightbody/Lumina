@@ -1,7 +1,7 @@
 #include "ShaderCompiler.h"
-#include "Core/Platform/Platform.h"
+#include "Core/Platform.h"
 #include <fstream>
-#include <shaderc/shaderc.hpp>
+#include <../shaderc/shaderc.hpp>
 
 namespace Lumina
 {
@@ -13,7 +13,7 @@ namespace Lumina
     std::future<ShaderCompiler::ShaderBlob> ShaderCompiler::CompileShaderAsync(
         const std::string& filePath,
         const std::string& entryPoint,
-        nri::ShaderStage stage)
+        ShaderStage stage)
     {
         return std::async(std::launch::async, [=]() {
             // Read source code
@@ -35,7 +35,7 @@ namespace Lumina
 
     ShaderCompiler::ShaderBlob ShaderCompiler::CompileGLSL(
         const std::string& source,
-        nri::ShaderStage stage,
+        ShaderStage stage,
         const std::string& sourceName)
     {
         shaderc::Compiler compiler;
@@ -45,9 +45,9 @@ namespace Lumina
 
         shaderc_shader_kind kind;
         switch (stage) {
-        case nri::ShaderStage::VERTEX: kind = shaderc_vertex_shader; break;
-        case nri::ShaderStage::FRAGMENT: kind = shaderc_fragment_shader; break;
-        case nri::ShaderStage::COMPUTE: kind = shaderc_compute_shader; break;
+        case ShaderStage::VERTEX: kind = shaderc_vertex_shader; break;
+        case ShaderStage::FRAGMENT: kind = shaderc_fragment_shader; break;
+        case ShaderStage::COMPUTE: kind = shaderc_compute_shader; break;
         default: throw std::runtime_error("Unsupported shader stage");
         }
 
